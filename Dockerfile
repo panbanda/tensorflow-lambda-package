@@ -15,8 +15,16 @@ RUN virtualenv ~/venvs/tensorflow && \
   source ~/venvs/tensorflow/bin/activate && \
   pip install --upgrade pip
 
+# Install TensorFlow
 RUN pip install --upgrade --ignore-installed --no-cache-dir https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-${TENSORFLOW_VERSION}-cp27-none-linux_x86_64.whl \
   && touch $VIRTUAL_ENV/lib64/python2.7/site-packages/google/__init__.py
+
+# Install any requirements if present
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+# Show all the versions of the software for verification
+RUN pip freeze
 
 # Warning: this is an experimental step. Removing libraries is used to better
 # comply with the AWS Lambda (unzipped) max size of 250 MB. The final product
@@ -27,8 +35,7 @@ RUN cd $VIRTUAL_ENV/lib/python2.7/site-packages \
   && find $VIRTUAL_ENV/{lib,lib64}/python2.7/site-packages -name "*.so" | xargs strip
 
 # Zip the package for distribution
-RUN pushd $VIRTUAL_ENV/lib/python2.7/site-packages/ \
-  && zip -r9q /build/tensorflow-${TENSORFLOW_VERSION}-cp27-none-linux_x86_64.zip * --exclude \*.pyc \
-  && popd
+RUN cd $VIRTUAL_ENV/lib/python2.7/site-packages/ \
+  && zip -r9q --exclude \*.pyc /build/tensorflow-${TENSORFLOW_VERSION}-cp27-none-linux_x86_64.zip *
 
 CMD ["python"]
